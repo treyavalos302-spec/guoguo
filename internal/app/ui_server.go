@@ -729,7 +729,7 @@ func (a *UIApp) handleDramas(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for index, id := range priority {
-			_, sourceID, valid := splitProviderDramaID(id)
+			_, _, valid := splitProviderDramaID(id)
 			if len(id) > 120 || !valid {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "无效的剧集 ID"})
 				return
