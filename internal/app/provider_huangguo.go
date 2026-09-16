@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bufio"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
