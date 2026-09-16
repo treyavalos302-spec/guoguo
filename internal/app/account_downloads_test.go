@@ -34,7 +34,7 @@ func TestOnlineOnlyAccountPersistsAndBlocksDownloadAPIs(t *testing.T) {
 		{http.MethodPost, "/api/ui/tasks/pause", map[string]any{"ids": []string{"existing-task"}}},
 		{http.MethodPost, "/api/ui/tasks/cancel", map[string]any{"ids": []string{"existing-task"}}},
 		{http.MethodPost, "/api/ui/tasks/clear", map[string]any{"all": true}},
-		{http.MethodPost, "/api/emby/export", map[string]any{"dramaId": historyFixtureDramaID, "baseUrl": "http://local.test"}},
+		{http.MethodPost, "/api/ui/emby/export", map[string]any{"dramaId": historyFixtureDramaID, "baseUrl": "http://local.test"}},
 		{http.MethodPost, "/api/ui/playback/open", map[string]any{"taskId": "existing-task"}},
 	} {
 		response := member.request(t, test.method, test.path, test.body)
@@ -83,7 +83,11 @@ func TestOnlineOnlyRevocationRejectsStalePagesAndAccountExports(t *testing.T) {
 	}
 	chapter := "hongguo:7000000000000000001:1"
 	query := url.Values{"id": {historyFixtureDramaID}, "chapter": {chapter}, "account": {account.ID}, "key": {embyToken(key, historyFixtureDramaID, chapter, account.ID)}}
-	if result := member.request(t, http.MethodHead, "/api/emby/stream.m3u8?"+query.Encode(), nil); result.Code != http.StatusOK {
+	paths, pathErr := app.ensureExternalPaths()
+	if pathErr != nil {
+		t.Fatal(pathErr)
+	}
+	if result := member.request(t, http.MethodHead, paths.Emby+"/stream.m3u8?"+query.Encode(), nil); result.Code != http.StatusOK {
 		t.Fatal("permitted account export rejected", result.Code)
 	}
 	viewerResultOK(t, admin.request(t, http.MethodPost, "/api/ui/admin/accounts/permissions", map[string]any{"username": "download-revoked", "onlineOnly": true}))
@@ -105,7 +109,7 @@ func TestOnlineOnlyRevocationRejectsStalePagesAndAccountExports(t *testing.T) {
 		t.Fatal("stale or forged download permission accepted", recorder.Code)
 	}
 	for _, endpoint := range []string{"stream.m3u8", "segment.ts"} {
-		if result := member.request(t, http.MethodGet, "/api/emby/"+endpoint+"?"+query.Encode(), nil); result.Code != http.StatusForbidden {
+		if result := member.request(t, http.MethodGet, paths.Emby+"/"+endpoint+"?"+query.Encode(), nil); result.Code != http.StatusForbidden {
 			t.Fatal("revoked account export remains usable", endpoint, result.Code)
 		}
 	}

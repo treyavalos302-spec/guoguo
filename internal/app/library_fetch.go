@@ -12,6 +12,9 @@ import (
 )
 
 func (d *Downloader) fetchAllDramas(ctx context.Context, sourceFilter string) ([]Drama, error) {
+	if d == nil {
+		return nil, errors.New("剧库下载器未初始化")
+	}
 	if sourceFilter != "" && !matchesSourceFilter(sourceHongguo, sourceFilter) && !matchesSourceFilter(sourceHuangdou, sourceFilter) {
 		return nil, errors.New("站源尚未接入或筛选无效")
 	}
@@ -29,7 +32,12 @@ func (d *Downloader) fetchAllDramas(ctx context.Context, sourceFilter string) ([
 		fn   func(context.Context) ([]Drama, error)
 	}{
 		{name: sourceHongguo, fn: d.fetchHongguoDramas},
-		{name: sourceHuangdou, fn: d.fetchHuangdouDramas},
+	}
+	if d != nil {
+		jobs = append(jobs, struct {
+			name string
+			fn   func(context.Context) ([]Drama, error)
+		}{name: sourceHuangdou, fn: d.fetchHuangdouDramas})
 	}
 	selected := jobs[:0]
 	for _, job := range jobs {

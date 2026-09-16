@@ -57,10 +57,10 @@ func TestSortMetadataSelectionAndResume(t *testing.T) {
 			t.Fatal("selected completed, cooling-down or other-source entries")
 		}
 	}
-	if got := selectSortMetadataBatch(rows, "huangdou", nil, now); len(got) != 0 {
+	if got := selectSortMetadataBatch(rows, "huangdou", nil, now); len(got) != 1 || got[0].ID != "huangdou:other" {
 		t.Fatal("source filter was not respected")
 	}
-	if remaining := sortMetadataRemaining(rows); remaining["hongguo"] != 59 || remaining["huangdou"] != 0 || remaining[""] != 59 {
+	if remaining := sortMetadataRemaining(rows); remaining["hongguo"] != 59 || remaining["huangdou"] != 1 || remaining[""] != 60 {
 		t.Fatal(remaining)
 	}
 }
