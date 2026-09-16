@@ -1,0 +1,40 @@
+# macOS and editors
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Runtime configuration and secrets
+.env
+.env.*
+!.env.example
+data/
+**/data/
+*.key
+*.pem
+
+# Downloaded media and application state
+downloads/
+短剧下载/
+*.mp4
+*.m4v
+*.mov
+*.mkv
+*.ts
+*.m3u8
+*.part
+*.part.*
+
+# Build output and portable dependencies
+dist/
+bin/
+coverage/
+*.out
+*.test
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak

@@ -1,0 +1,35 @@
+name: guoguo-juku
+services:
+  app:
+    image: ${JUKU_IMAGE:-guoguo-juku:local}
+    build:
+      context: .
+    ports:
+      - "${JUKU_BIND_ADDRESS:-0.0.0.0}:${JUKU_PORT:-8999}:8999"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      JUKU_PROXY_URL: ${JUKU_PROXY_URL:-}
+      JUKU_ADMIN_USER: ${JUKU_ADMIN_USER:-}
+      JUKU_ADMIN_PASSWORD: ${JUKU_ADMIN_PASSWORD:-}
+      JUKU_PUBLIC_URL: ${JUKU_PUBLIC_URL:-}
+      JUKU_FORWARD_PATH: ${JUKU_FORWARD_PATH:-}
+      JUKU_FORWARD_TOKEN: ${JUKU_FORWARD_TOKEN:-}
+      JUKU_EMBY_PATH: ${JUKU_EMBY_PATH:-}
+      JUKU_EMBY_EXPORT_DIR: ${JUKU_EMBY_EXPORT_DIR:-/emby-library}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - data:/data
+      - downloads:/downloads
+      - emby-library:/emby-library
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  data:
+  downloads:
+  emby-library:
