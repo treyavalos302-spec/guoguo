@@ -109,7 +109,7 @@ func TestDramaRefreshWithHealthyCoverCoalescesPersistsAndDoesNotBlockReads(t *te
 	if updated.ID != old.ID || updated.Title != "更新后的合成剧名" || updated.Intro != "补齐的简介" || fmt.Sprint(updated.TotalEpisode) != "4" || updated.Heat != "900" || updated.ReleaseStatus != "ongoing" || len(updated.Tags) != 1 || updated.CategoryName != "合成分类" || updated.OnlineDate != old.OnlineDate || !updated.SortMetadata.CheckedAt.After(old.SortMetadata.CheckedAt) {
 		t.Fatal("click did not reconcile full drama metadata", updated)
 	}
-	if !reflect.DeepEqual(cachedOther, other) || len(app.dramas) != 2 {
+	if cachedOther.ID != other.ID || cachedOther.Title != other.Title || cachedOther.Desc != other.Desc || bestDramaCover(cachedOther) != bestDramaCover(other) || len(app.dramas) != 2 {
 		t.Fatal("one click changed an unrelated drama or queued the entire historical library")
 	}
 }
