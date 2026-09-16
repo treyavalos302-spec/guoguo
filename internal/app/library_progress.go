@@ -65,8 +65,9 @@ func (a *UIApp) startLibraryLoadLocked(source string, mode libraryLoadMode, prio
 	if a.librarySources == nil {
 		a.librarySources = map[string]librarySourceState{}
 	}
-	for _, provider := range []string{sourceHongguo} {
+	for _, provider := range []string{sourceHongguo, sourceHuangdou} {
 		if matchesSourceFilter(provider, source) {
+
 			state := a.librarySources[provider]
 			state.Status = "loading"
 			state.Error = ""
@@ -105,12 +106,12 @@ func (a *UIApp) startLibraryLoadLocked(source string, mode libraryLoadMode, prio
 }
 
 func (a *UIApp) acceptLibraryProgress(source string, items []Drama, loadErr error, done bool) {
-	if canonicalProviderSource(source) != sourceHongguo {
+	source = canonicalProviderSource(source)
+	if source == "" {
 		return
 	}
-	source = sourceHongguo
 	a.mu.Lock()
-	items = onlyHongguoDramas(items)
+	items = onlySupportedDramas(items)
 	a.normalizeDramaCovers(items)
 	newDramas := a.newSortMetadataDramasLocked(items)
 	if done {

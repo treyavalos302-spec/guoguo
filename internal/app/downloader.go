@@ -73,8 +73,8 @@ func (d *Downloader) DownloadEpisodeWithProgress(ctx context.Context, task Task,
 			d.recordTaskFailure("download.failed", task, 0, resultErr)
 		}
 	}()
-	if !isHongguoTask(task) {
-		return errors.New("此版本仅支持红果剧集")
+	if !isSupportedTask(task) {
+		return errors.New("剧集或站源不受支持")
 	}
 	return d.downloadMediaWithProgress(ctx, task, callback)
 }

@@ -54,7 +54,7 @@ func (a *UIApp) handleRankings(writer http.ResponseWriter, request *http.Request
 
 func (a *UIApp) acceptRankingDramas(page rankingPage) {
 	board, valid := findRankingBoard(page.BoardID)
-	if !valid || board.Source != sourceHongguo || len(page.Items) == 0 {
+	if !valid || len(page.Items) == 0 || !sourceAllowed(context.Background(), board.Source) {
 		return
 	}
 	key := page.BoardID + ":" + strconv.Itoa(page.Page)
@@ -74,7 +74,8 @@ func (a *UIApp) acceptRankingDramas(page rankingPage) {
 	for _, item := range page.Items {
 		fresh = append(fresh, item.Drama)
 	}
-	fresh = onlyHongguoDramas(fresh)
+	fresh = onlySupportedDramas(fresh)
+
 	if len(fresh) == 0 {
 		a.mu.Unlock()
 		return

@@ -36,18 +36,15 @@ func readLibraryCache(outputDir string) (libraryCache, error) {
 	if err := json.Unmarshal(body, &cache); err != nil {
 		return cache, fmt.Errorf("本地剧库缓存损坏 %s: %w", path, err)
 	}
-	originalCount := len(cache.Dramas)
-	cache.Dramas = onlyHongguoDramas(cache.Dramas)
+	cache.Dramas = onlySupportedDramas(cache.Dramas)
 	sources := make(map[string]librarySourceState)
 	for source, state := range cache.Sources {
-		if canonicalProviderSource(source) == sourceHongguo {
-			sources[sourceHongguo] = state
+		if canonical := canonicalProviderSource(source); canonical != "" {
+			sources[canonical] = state
 		}
 	}
-	if originalCount != len(cache.Dramas) || len(sources) != len(cache.Sources) {
-		cache.LastError = librarySourceErrors(sources)
-	}
 	cache.Sources = sources
+	cache.LastError = librarySourceErrors(sources)
 	return cache, nil
 }
 

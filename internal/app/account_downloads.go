@@ -20,7 +20,7 @@ func accountDownloadPath(path string) bool {
 		return true
 	}
 	switch path {
-	case "/api/ui/download", "/api/ui/tasks", "/api/ui/update", "/api/ui/merge", "/api/emby/export":
+	case "/api/ui/download", "/api/ui/tasks", "/api/ui/update", "/api/ui/merge", "/api/ui/emby/export":
 		return true
 	}
 	return false

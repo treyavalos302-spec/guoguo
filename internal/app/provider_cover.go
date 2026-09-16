@@ -7,9 +7,19 @@ import (
 )
 
 func (d *Downloader) fetchDramaCoverAddress(ctx context.Context, drama Drama) (string, error) {
-	drama, valid := normalizeHongguoDrama(drama)
+	drama, valid := normalizeProviderDrama(drama)
 	if !valid {
-		return "", errors.New("无效的红果剧集 ID")
+		return "", errors.New("无效的剧集 ID")
+	}
+	if drama.Source == sourceHuangdou {
+		row, err := d.huangdouDetail(ctx, drama.SourceID)
+		if err != nil {
+			return "", err
+		}
+		return firstNonEmpty(mapString(row, "img_y", "img_x", "img", "cover", "pic")), nil
+	}
+	if drama.Source != sourceHongguo {
+		return "", errors.New("该站源暂无封面补齐接口")
 	}
 	result, err := d.hongguoAppRequest(ctx, http.MethodPost, "/novel/player/video_detail/v1/", nil, map[string]any{"series_id": drama.SourceID})
 	if err != nil {

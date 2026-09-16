@@ -2,8 +2,10 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -20,10 +22,14 @@ type providerMedia struct {
 }
 
 func (d *Downloader) providerBaseURL(source string) string {
-	if canonicalProviderSource(source) != sourceHongguo {
+	switch canonicalProviderSource(source) {
+	case sourceHongguo:
+		return strings.TrimRight(firstNonEmpty(d.cfg.HongguoURL, hongguoBaseURL), "/")
+	case sourceHuangdou:
+		return strings.TrimRight(firstNonEmpty(d.cfg.HuangdouURL, huangdouBaseURL), "/")
+	default:
 		return ""
 	}
-	return strings.TrimRight(firstNonEmpty(d.cfg.HongguoURL, hongguoBaseURL), "/")
 }
 
 func providerSourceForURL(raw string) string {
@@ -62,16 +68,37 @@ func (d *Downloader) providerURLCandidates(raw string) []string {
 }
 
 func (d *Downloader) resolveProviderMedia(ctx context.Context, task Task) (providerMedia, error) {
-	if !isHongguoTask(task) {
-		return providerMedia{}, fmt.Errorf("此版本仅支持红果剧集")
+	if !isSupportedTask(task) {
+		return providerMedia{}, fmt.Errorf("剧集或站源不受支持")
 	}
 	chapter := task.Chapter
+	chapter.Source = canonicalProviderSource(chapter.Source)
+	if chapter.Source == "" {
+		chapter.Source = sourceFromDramaID(task.DramaID)
+	}
+	if chapter.Source == sourceHuangdou {
+		_, sourceID, valid := splitProviderDramaID(task.DramaID)
+		if !valid {
+			return providerMedia{}, errors.New("黄豆剧集 ID 无效")
+		}
+		sequence, err := strconv.Atoi(chapter.EpisodeString(task.Index))
+		if err != nil || sequence < 1 {
+			return providerMedia{}, errors.New("黄豆集数无效")
+		}
+		client := newHuangdouAPIClient(d)
+		media, err := d.resolveHuangdouPlayback(ctx, client, sourceID, sequence)
+		if err != nil {
+			return providerMedia{}, err
+		}
+		media.Referer = client.host + "/home"
+		return media, nil
+	}
 	if strings.HasPrefix(chapter.VideoURL, "hongguo-cenc://") {
 		return d.resolveHongguoMedia(ctx, task)
 	}
-	media := providerMedia{URL: chapter.VideoURL, Referer: firstNonEmpty(chapter.Referer, d.providerBaseURL(sourceHongguo)+"/")}
+	media := providerMedia{URL: chapter.VideoURL, Referer: firstNonEmpty(chapter.Referer, d.providerBaseURL(chapter.Source)+"/")}
 	if !isProviderHTTPMediaURL(media.URL) {
-		return providerMedia{}, fmt.Errorf("红果未返回有效播放地址，请更新合集或确认站点访问权限")
+		return providerMedia{}, fmt.Errorf("%s 未返回有效播放地址，请更新合集或确认站点访问权限", chapter.Source)
 	}
 	parsed, _ := url.Parse(media.URL)
 	if strings.HasSuffix(strings.ToLower(parsed.Path), ".m3u8") {

@@ -22,8 +22,10 @@ func hasCompleteSortMetadata(drama Drama) bool {
 		return false
 	}
 	switch dramaProvider(drama) {
-	case sourceHongguo:
+	case sourceHongguo, sourceHuangdou:
 		return hasSortMetric(drama.Heat)
+	case sourceHuangguoAI, sourceHuangguoVideo:
+		return true
 	}
 	return false
 }
@@ -62,7 +64,7 @@ func (d *Downloader) fetchDramaSortMetadata(ctx context.Context, drama Drama) (D
 		return patch, errors.New("无效的剧集 ID")
 	}
 	needCover := needsHongguoCoverAddress(drama)
-	if hasCompleteSortMetadata(drama) && !needCover {
+	if hasCompleteSortMetadata(drama) && !needCover && !needsHuangdouVIPMetadata(drama) {
 		return patch, nil
 	}
 	switch source {
@@ -108,9 +110,23 @@ func (d *Downloader) fetchDramaSortMetadata(ctx context.Context, drama Drama) (D
 			failures = append(failures, appErr)
 		}
 		return patch, errors.Join(failures...)
-
+	case sourceHuangdou:
+		if !rankingSourceID.MatchString(id) {
+			return patch, errors.New("无效的黄豆剧集 ID")
+		}
+		row, err := d.huangdouDetail(ctx, id)
+		if err != nil {
+			return patch, err
+		}
+		patch.VIP = huangdouVIPFlag(row)
+		patch.Title = mapString(row, "name", "title")
+		patch.OnlineDate = providerReleaseDate(mapString(row, "issue_date"))
+		patch.Views = normalizeViews(mapString(row, "click"))
+		patch.Heat = mapString(row, "hot_rate")
+		return patch, nil
 	}
 	return patch, errors.New("该站源暂无资料补齐接口")
+
 }
 
 func parseHongguoSortDetail(body, id string) (Drama, error) {

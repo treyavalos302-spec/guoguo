@@ -286,6 +286,7 @@ func (a *UIApp) routes() http.Handler {
 	mux.HandleFunc("/api/ui/network/check", a.handleNetworkCheck)
 	mux.HandleFunc("/api/ui/directory/pick", a.handleDirectoryPicker)
 	mux.HandleFunc("/api/ui/image", a.handleImage)
+	mux.HandleFunc("/api/ui/emby/export", a.handleEmbyExport)
 	mux.HandleFunc("/api/ui/admin/emby/export", a.handleEmbyExport)
 	mux.HandleFunc("/api/ui/admin/emby/sync", a.handleEmbySync)
 	if paths, err := a.ensureExternalPaths(); err == nil {
@@ -522,19 +523,21 @@ func (a *UIApp) loadState() {
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.dramas = onlyHongguoDramas(state.Dramas)
+	a.dramas = onlySupportedDramas(state.Dramas)
 	a.normalizeDramaCovers(a.dramas)
 	a.loadedAt = state.LoadedAt
 	a.lastError = a.redactString(state.LastError)
 	for identifier, merge := range state.MergeStates {
-		if sourceFromDramaID(identifier) == sourceHongguo {
+		if sourceFromDramaID(identifier) != "" {
 			a.merges[identifier] = merge
 		}
 	}
+
 	seen := map[string]bool{}
 	changed := len(a.dramas) != len(state.Dramas)
 	for _, task := range state.Tasks {
-		if task == nil || task.RemoveRequested || sourceFromDramaID(task.DramaID) != sourceHongguo || !isHongguoTask(task.Source) {
+		if task == nil || task.RemoveRequested || sourceFromDramaID(task.DramaID) == "" || !isSupportedTask(task.Source) {
+
 			changed = true
 			continue
 		}
@@ -711,12 +714,9 @@ func (a *UIApp) handleDramas(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	source := r.URL.Query().Get("source")
-	if source != "" && canonicalProviderSource(source) != sourceHongguo {
+	if source != "" && !matchesSourceFilter(sourceHongguo, source) && !matchesSourceFilter(sourceHuangdou, source) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "不支持刷新该站源"})
 		return
-	}
-	if source != "" {
-		source = sourceHongguo
 	}
 	if source != "" && !requireSource(w, r.Context(), source) {
 		return
@@ -734,7 +734,7 @@ func (a *UIApp) handleDramas(w http.ResponseWriter, r *http.Request) {
 				writeJSON(w, http.StatusBadRequest, map[string]string{"error": "无效的剧集 ID"})
 				return
 			}
-			priority[index] = providerDramaID(sourceHongguo, sourceID)
+			priority[index] = id
 		}
 	}
 	if !a.requireDramaSources(w, r, priority) {

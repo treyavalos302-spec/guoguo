@@ -140,7 +140,7 @@ export function createDetails(app) {
     exporting.add(id);
     render();
     try {
-      const response = await fetch('/api/ui/admin/emby/export', {method: 'POST', headers: Object.assign({'Content-Type': 'application/json'}, window.JukuViewer.headers()), body: JSON.stringify({dramaId: id, baseUrl: location.origin})});
+      const response = await fetch('/api/ui/emby/export', {method: 'POST', headers: Object.assign({'Content-Type': 'application/json'}, window.JukuViewer.headers()), body: JSON.stringify({dramaId: id, baseUrl: location.origin})});
       if (!response.ok) {const result = await response.json(); throw new Error(result.error || '导出失败');}
       const address = URL.createObjectURL(await response.blob());
       const link = document.createElement('a');

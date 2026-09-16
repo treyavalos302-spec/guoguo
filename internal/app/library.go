@@ -19,6 +19,14 @@ func (failure *libraryLoadError) Error() string {
 	return strings.Join(messages, "\n")
 }
 
+func (failure *libraryLoadError) Unwrap() []error {
+	causes := make([]error, 0, len(failure.failures))
+	for _, cause := range failure.failures {
+		causes = append(causes, cause)
+	}
+	return causes
+}
+
 func dramaProvider(drama Drama) string {
 	if source := canonicalProviderSource(drama.Source); source != "" {
 		return source
@@ -34,11 +42,20 @@ func mergeLoadedDramas(cached, fresh []Drama, loadErr error) []Drama {
 }
 
 func matchesSourceFilter(provider, source string) bool {
-	return canonicalProviderSource(provider) == sourceHongguo && (source == "" || canonicalProviderSource(source) == sourceHongguo)
+	provider = canonicalProviderSource(provider)
+	filter := strings.ToLower(strings.TrimSpace(source))
+	if filter == "" {
+		return provider != ""
+	}
+	if filter == "huangguo" {
+		return provider == sourceCloudfront || provider == sourceHuangguoAI || provider == sourceHuangguoVideo
+	}
+	return provider != "" && provider == canonicalProviderSource(filter)
 }
 
-func mergeSourceDramas(cached, fresh []Drama, loadErr error, source string) []Drama {
-	cached, fresh = onlyHongguoDramas(cached), onlyHongguoDramas(fresh)
+func mergeSourceDramas(cached, fresh []Drama, _ error, _ string) []Drama {
+	cached = onlySupportedDramas(cached)
+	fresh = onlySupportedDramas(fresh)
 	merged := make([]Drama, 0, len(cached)+len(fresh))
 	positions := make(map[string]int, cap(merged))
 	for _, batch := range [][]Drama{cached, fresh} {
