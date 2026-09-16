@@ -96,11 +96,20 @@ func TestDramaRefreshWithHealthyCoverCoalescesPersistsAndDoesNotBlockReads(t *te
 	if err != nil || len(cache.Dramas) != 2 {
 		t.Fatal("refreshed drama was not persisted", err)
 	}
-	updated := cache.Dramas[0]
-	if updated.Title != "更新后的合成剧名" || updated.Intro != "补齐的简介" || fmt.Sprint(updated.TotalEpisode) != "4" || updated.Heat != "900" || updated.ReleaseStatus != "ongoing" || len(updated.Tags) != 1 || updated.CategoryName != "合成分类" || updated.OnlineDate != old.OnlineDate || !updated.SortMetadata.CheckedAt.After(old.SortMetadata.CheckedAt) {
+	var updated Drama
+	var cachedOther Drama
+	for _, drama := range cache.Dramas {
+		switch drama.ID {
+		case old.ID:
+			updated = drama
+		case other.ID:
+			cachedOther = drama
+		}
+	}
+	if updated.ID != old.ID || updated.Title != "更新后的合成剧名" || updated.Intro != "补齐的简介" || fmt.Sprint(updated.TotalEpisode) != "4" || updated.Heat != "900" || updated.ReleaseStatus != "ongoing" || len(updated.Tags) != 1 || updated.CategoryName != "合成分类" || updated.OnlineDate != old.OnlineDate || !updated.SortMetadata.CheckedAt.After(old.SortMetadata.CheckedAt) {
 		t.Fatal("click did not reconcile full drama metadata", updated)
 	}
-	if !reflect.DeepEqual(cache.Dramas[1], other) || len(app.dramas) != 2 {
+	if !reflect.DeepEqual(cachedOther, other) || len(app.dramas) != 2 {
 		t.Fatal("one click changed an unrelated drama or queued the entire historical library")
 	}
 }
