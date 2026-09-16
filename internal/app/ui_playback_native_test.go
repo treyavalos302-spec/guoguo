@@ -189,9 +189,11 @@ func TestPlaybackNativeHLSSeeksRangesPrefetchAndCleanup(t *testing.T) {
 func TestPlaybackKeeps1080pAndNativeResumeTimeline(t *testing.T) {
 	app, session := nativePlaybackFixture(t, "4", "1080x1920")
 	writer := httptest.NewRecorder()
-	app.handlePlaybackStream(writer, viewerFixtureRequest(app, httptest.NewRequest(http.MethodGet, "http://localhost/api/ui/playback/stream?session=fixture&episode=1", nil)))
-	if writer.Code != http.StatusOK || !bytes.Contains(writer.Body.Bytes(), []byte("moof")) {
-		t.Fatal("generated 1080p stream failed", writer.Code)
+	streamRequest := httptest.NewRequest(http.MethodGet, "http://localhost/api/ui/playback/stream?session=fixture&episode=1", nil)
+	streamRequest.Header.Set("Range", "bytes=0-187")
+	app.handlePlaybackStream(writer, viewerFixtureRequest(app, streamRequest))
+	if writer.Code != http.StatusOK || writer.Header().Get("Content-Range") != "" || !bytes.Contains(writer.Body.Bytes(), []byte("moof")) {
+		t.Fatal("generated 1080p stream failed or pretended to support byte ranges", writer.Code, writer.Header().Get("Content-Range"))
 	}
 	path := filepath.Join(t.TempDir(), "encoded.mp4")
 	if err := os.WriteFile(path, writer.Body.Bytes(), 0600); err != nil {
@@ -273,6 +275,13 @@ func TestPlaybackNativeAssetsSignedHTTPRangeAndColdHead(t *testing.T) {
 	if playlistWriter.Code != http.StatusOK || playlistWriter.Header().Get("Content-Type") != "application/vnd.apple.mpegurl" || strings.Count(playlistWriter.Body.String(), "#EXTINF:") != 3 {
 		t.Fatal("signed playlist GET failed", playlistWriter.Code, playlistWriter.Header(), playlistWriter.Body.String())
 	}
+	playlistHeadRequest := httptest.NewRequest(http.MethodHead, "http://localhost"+playlistURL, nil)
+	playlistHeadRequest.Header.Set("Origin", "null")
+	playlistHead := httptest.NewRecorder()
+	app.handlePlaybackNativeAsset(playlistHead, playlistHeadRequest)
+	if playlistHead.Code != http.StatusOK || playlistHead.Body.Len() != 0 || playlistHead.Header().Get("Content-Type") != "application/vnd.apple.mpegurl" {
+		t.Fatal("signed playlist HEAD failed", playlistHead.Code, playlistHead.Header(), playlistHead.Body.Len())
+	}
 	var segmentURL string
 	for _, line := range strings.Split(playlistWriter.Body.String(), "\n") {
 		if strings.HasPrefix(line, "/assets/playback/hls/segment.ts?") {
@@ -343,6 +352,13 @@ func TestPlaybackNativeTailBoundary(t *testing.T) {
 		if last := playbackNativeSegmentDuration(test.duration, test.count-1); math.Abs(last-test.last) > 0.0001 {
 			t.Fatalf("duration %.3f produced final segment %.3f, want %.3f", test.duration, last, test.last)
 		}
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	body := []byte("tail")
+	cache := &playbackNative{ctx: ctx, cancel: cancel, duration: 2.04, offset: 2.02, prepared: true, changed: make(chan struct{}), segments: map[int][]byte{0: body}}
+	if got, err := cache.segment(context.Background(), 1); err != nil || !bytes.Equal(got, body) {
+		t.Fatal("near-tail resume requested a phantom segment", err, got)
 	}
 }
 

@@ -98,6 +98,9 @@ func (cache *playbackNative) start() {
 			if err == nil && cache.duration > 0 && cache.offset >= cache.duration {
 				err = errors.New("播放位置超过本集时长")
 			}
+			if count := cache.segmentCountLocked(); err == nil && count > 0 && cache.wanted >= count {
+				cache.wanted = count - 1
+			}
 			if err != nil {
 				cache.err = err
 				cache.batchOnce.Do(func() { close(cache.firstBatch) })
@@ -377,7 +380,11 @@ func (cache *playbackNative) segment(ctx context.Context, index int) ([]byte, er
 			cache.mu.Unlock()
 			return nil, errors.New("播放已停止，请重新打开本集")
 		}
-		if index < 0 || cache.segmentCountLocked() > 0 && index >= cache.segmentCountLocked() {
+		count := cache.segmentCountLocked()
+		if count > 0 && index >= count && index == int(cache.offset/playbackNativeSegmentSeconds) && cache.offset < cache.duration {
+			index = count - 1
+		}
+		if index < 0 || count > 0 && index >= count {
 			cache.mu.Unlock()
 			return nil, errors.New("播放分片不存在")
 		}

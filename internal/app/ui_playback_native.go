@@ -190,7 +190,9 @@ func (app *UIApp) handlePlaybackNativeAsset(writer http.ResponseWriter, request 
 		var playlist strings.Builder
 		fmt.Fprintf(&playlist, "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:%d\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-INDEPENDENT-SEGMENTS\n", playbackNativeSegmentSeconds)
 		if cache.offset > 0 {
-			fmt.Fprintf(&playlist, "#EXT-X-START:TIME-OFFSET=%.3f,PRECISE=YES\n", cache.offset)
+			timeline := float64(count-1)*playbackNativeSegmentSeconds + playbackNativeSegmentDuration(duration, count-1)
+			start := math.Min(cache.offset, math.Max(0, timeline-0.05))
+			fmt.Fprintf(&playlist, "#EXT-X-START:TIME-OFFSET=%.3f,PRECISE=YES\n", start)
 		}
 		for index := 0; index < count; index++ {
 			length := playbackNativeSegmentDuration(duration, index)
@@ -221,6 +223,7 @@ func (app *UIApp) handlePlaybackNativeAsset(writer http.ResponseWriter, request 
 		return
 	}
 	if request.Method == http.MethodHead {
+		writer.Header().Set("Cache-Control", "private, no-store, no-transform")
 		writer.WriteHeader(http.StatusOK)
 		return
 	}

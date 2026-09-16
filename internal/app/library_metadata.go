@@ -14,6 +14,7 @@ const sortMetadataBatchSize = 40
 const sortMetadataRetryDelay = 5 * time.Minute
 
 type sortMetadataState struct {
+	VIPChecked   bool      `json:"vipChecked,omitempty"`
 	Version      int       `json:"version"`
 	CheckedAt    time.Time `json:"checkedAt"`
 	Pending      bool      `json:"pending,omitempty"`
@@ -34,14 +35,14 @@ type libraryMetadataProgress struct {
 
 func supportsSortMetadata(drama Drama) bool {
 	switch dramaProvider(drama) {
-	case sourceHongguo:
+	case sourceHongguo, sourceHuangdou:
 		return true
 	}
 	return false
 }
 
 func needsSortMetadata(drama Drama) bool {
-	return supportsSortMetadata(drama) && (drama.SortMetadata == nil || drama.SortMetadata.Version != sortMetadataVersion || needsHongguoCoverAddress(drama))
+	return supportsSortMetadata(drama) && (drama.SortMetadata == nil || drama.SortMetadata.Version != sortMetadataVersion || needsHongguoCoverAddress(drama) || needsHuangdouVIPMetadata(drama))
 }
 
 func needsHongguoCoverAddress(drama Drama) bool {
@@ -157,8 +158,10 @@ func (d *Downloader) backfillSortMetadata(ctx context.Context, source string) ([
 				patch.SortMetadata = &sortMetadataState{CheckedAt: time.Now()}
 				if err == nil {
 					patch.SortMetadata.Version = sortMetadataVersion
-					patch.SortMetadata.CoverChecked = true
+					patch.SortMetadata.CoverChecked = dramaProvider(drama) == sourceHongguo
+					patch.SortMetadata.VIPChecked = dramaProvider(drama) == sourceHuangdou
 				}
+
 				results <- result{patch: patch, previous: drama, err: err}
 			}
 		}()

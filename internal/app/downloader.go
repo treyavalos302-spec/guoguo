@@ -18,15 +18,15 @@ type Downloader struct {
 	huangdouDetails       map[string]huangdouDetailEntry
 	huangdouDetailPending map[string]*huangdouDetailCall
 	providerMu            sync.Mutex
-	providerHosts   map[string]string
-	hongguoOnce     sync.Once
-	hongguo         *hongguoAppClient
-	rankings        rankingCache
-	limiter         *requestLimiter
-	proxyRouter     *proxyRouter
-	ffmpegMu        sync.Mutex
-	ffmpegInstaller *ffmpegInstaller
-	diagnostics     *diagnosticLog
+	providerHosts         map[string]string
+	hongguoOnce           sync.Once
+	hongguo               *hongguoAppClient
+	rankings              rankingCache
+	limiter               *requestLimiter
+	proxyRouter           *proxyRouter
+	ffmpegMu              sync.Mutex
+	ffmpegInstaller       *ffmpegInstaller
+	diagnostics           *diagnosticLog
 }
 
 func NewDownloader(cfg Config) *Downloader {

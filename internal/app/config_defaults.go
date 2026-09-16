@@ -49,8 +49,8 @@ func applyConfigEnvironment(config *Config) {
 		"JUKU_HUANGDOU_URL":       &config.HuangdouURL,
 		"JUKU_HONGGUO_URL":        &config.HongguoURL,
 		"JUKU_PROXY_URL":          &config.ProxyURL,
-		"JUKU_OUTPUT_DIR":  &config.OutputDir,
-		"JUKU_FFMPEG":      &config.FFmpeg,
+		"JUKU_OUTPUT_DIR":         &config.OutputDir,
+		"JUKU_FFMPEG":             &config.FFmpeg,
 	} {
 		if value := os.Getenv(variable); value != "" {
 			*target = value

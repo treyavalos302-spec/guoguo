@@ -142,8 +142,8 @@ func readProviderIDsRequest(writer http.ResponseWriter, request *http.Request) (
 
 // Compatibility wrappers keep existing call sites stable while the application is multi-source.
 func normalizeHongguoDrama(drama Drama) (Drama, bool) { return normalizeProviderDrama(drama) }
-func onlyHongguoDramas(dramas []Drama) []Drama         { return onlySupportedDramas(dramas) }
-func isHongguoTask(task Task) bool                     { return isSupportedTask(task) }
+func onlyHongguoDramas(dramas []Drama) []Drama        { return onlySupportedDramas(dramas) }
+func isHongguoTask(task Task) bool                    { return isSupportedTask(task) }
 func readHongguoIDsRequest(writer http.ResponseWriter, request *http.Request) ([]string, bool) {
 	return readProviderIDsRequest(writer, request)
 }
